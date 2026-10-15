@@ -17,14 +17,16 @@ PlayButton = pygame.Rect(500, 500,200,100)
 SettingsButton = pygame.Rect(150, 500, 200, 100)
 MenuButton = pygame.Rect(1000, 50, 150, 75)
 DeckRect = pygame.Rect(100,100,150,200)
+DiscardRect = pygame.Rect(1000,550,150,200)
 
 #List of fonts:
 font = pygame.font.Font(None,30)
 
 menuOpen = 'Main' # Varible to keep track of which menu is open
 
-Suits = ["Hearts", "diamonds", "spades", "clubs"] # Allows me to loop through this and go through each suit in each loop
+Suits = ["hearts", "diamonds", "spades", "clubs"] # Allows me to loop through this and go through each suit in each loop
 Deck = [] #Deck list
+discardPile = []
 for x in Suits: #Repeat for each 4 suits
     for y in range(2,15): # Repats from ranks 2-14
         if y == 11 and (x == "spades" or x == "clubs"): #ranks 11, 12, 13, 14 have special names so have a special condtion for them
@@ -48,8 +50,6 @@ random.shuffle(Deck)
 tableCards = []
 tableCount = 0
 
-for z in Deck:
-    print(z) #Tempary check, amde before loop otherwise I would crash python printing a large list multiple times per second
 
 def drawButton(button, colour, words, wordx, wordy): #Function to draw buttons more efficiently
     pygame.draw.rect(screen, colour, button)
@@ -57,14 +57,14 @@ def drawButton(button, colour, words, wordx, wordy): #Function to draw buttons m
     textSurface = font.render(words, True, BLACK)
     screen.blit(textSurface, (button.x + wordx, button.y + wordy))
 
-def drawCard(x,y,name,suit):
-    if suit == "hearts" or suit == "diamonds":
+def drawCard(x,y,name,suit): #Function to draw placeholder carde
+    if suit == "hearts" or suit == "diamonds": #changes text to match suit
         tempColour = RED
     else:
         tempColour = BLACK
-    pygame.draw.rect(screen, WHITE, (x,y,150,200))
+    pygame.draw.rect(screen, WHITE, (x,y,150,200)) #draws a white rectangle for card base
     pygame.draw.rect(screen, BLACK, (x, y, 150, 200),3)
-    textSurface = font.render(name, True, tempColour)
+    textSurface = font.render(name, True, tempColour) #Then draws the cards name on top
     screen.blit(textSurface, ((x + 10, y + 10)))
 
 while running: #The Main running loop where everything on the screen will update
@@ -76,10 +76,31 @@ while running: #The Main running loop where everything on the screen will update
                 running = False
             if PlayButton.collidepoint(pygame.mouse.get_pos()) and menuOpen == 'Main':
                 menuOpen = 'Play'
+                random.shuffle(Deck)
             if SettingsButton.collidepoint(pygame.mouse.get_pos()) and menuOpen == 'Main':
                 menuOpen = 'Settings'
             if MenuButton.collidepoint(pygame.mouse.get_pos()) and (menuOpen == 'Settings' or menuOpen == 'Play'):
+                if menuOpen == 'Play':
+                    for x in tableCards:
+                        Deck.append(x)
+                    tableCards = []
+                    tableCount = 0
                 menuOpen = 'Main'
+            if menuOpen == 'DisplayDeck':
+                if pygame.Rect(0,0,1200,800).collidepoint(pygame.mouse.get_pos()): #check if anywhere on the screen has opened
+                    menuOpen = 'Play' #returns back to play
+            if menuOpen == 'Play':
+                count = 0
+                for x in tableCards: #checks each card on the table
+                    if pygame.Rect(325 + (160 * count), 100, 150, 200).collidepoint(pygame.mouse.get_pos()):#if the card on the table has been clicked
+                        discardPile.append(x) #moves the card from table to discard
+                        tableCards.remove(x)
+                        tableCount -= 1
+                    count += 1
+                if DeckRect.collidepoint(pygame.mouse.get_pos()): #if you click on the deck
+                    menuOpen = 'DisplayDeck' #sends you to the deck preview area
+
+
 
 
     if menuOpen == 'Main': #Checks which menu is open, and draws the correct screen
@@ -89,24 +110,45 @@ while running: #The Main running loop where everything on the screen will update
         drawButton(SettingsButton, BLUE, "Settings", 55, 40)
 
     if menuOpen == 'Play':
-        screen.fill(GREY)
+        screen.fill(GREY) #fills the screen and draws the decks
         drawButton(MenuButton, RED, "Menu", 50, 30)
         pygame.draw.rect(screen, RED, DeckRect)
         pygame.draw.rect(screen, BLACK, DeckRect, 3)
+        pygame.draw.rect(screen, RED, DiscardRect)
+        pygame.draw.rect(screen, BLACK, DiscardRect, 3)
 
-        if tableCount < 4:
-            card = Deck[0]
-            tableCards.append(card)
-            Deck.remove(Deck[0])
-            tableCount += 1
+        textSurface = font.render("Cards: %d" % (len(Deck)), True, BLACK)  # Draws the number of cards in the deck
+        screen.blit(textSurface, ((10,50)))
+        textSurface = font.render("Cards: %d" % (len(discardPile)), True, BLACK)  # And the discard
+        screen.blit(textSurface, ((1000, 760)))
+
+        if tableCount < 2: #while there are less than 4 cards on the table,
+            while tableCount != 4:
+                card = Deck[0] #adds cards from deck to table untill there are 4
+                tableCards.append(card)
+                Deck.remove(Deck[0])
+                tableCount += 1
 
         count = 0
-        for x in tableCards:
-            drawCard(325 + (160*count), 100, x[0], x[1])
+        for x in tableCards: # For each card on the table, draws the card
+            drawCard(325 + (160*count), 100, x[0], x[2])
             count += 1
 
     if menuOpen == 'Settings':
         screen.fill(GREY)
         drawButton(MenuButton, RED, "Menu", 50, 30)
+
+    if menuOpen == 'DisplayDeck':
+        screen.fill(GREY)
+        count = 0
+        for x in range(2,10):
+            for y in Deck:
+                if y[2] == 'hearts' and y[1] == x:
+                    drawCard(100,(100+(count*40)),y[0],y[2])
+                    count += 1
+        #for x in Deck:
+           # if x[2] == 'h':
+            #drawCard(100 + (count * 160), 400, x[0], x[2])
+           # count += 1
 
     pygame.display.update() #Finishes the running loop, then updating the screen with the changes
