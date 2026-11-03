@@ -59,6 +59,12 @@ random.shuffle(Deck)
 tableCards = []
 tableCount = 0
 
+CurrentDiamond = []
+DiamondChoice = False
+DurabilityList = []
+Durability = 9999
+checking = []
+
 
 def drawButton(button, colour, words, wordx, wordy): #Function to draw buttons more efficiently
     pygame.draw.rect(screen, colour, button)
@@ -109,30 +115,59 @@ while running: #The Main running loop where everything on the screen will update
             if menuOpen == 'Play':
                 count = 0
                 for x in tableCards: #checks each card on the table
-                    if pygame.Rect(325 + (160 * count), 100, 150, 200).collidepoint(pygame.mouse.get_pos()):#if the card on the table has been clicked
+                    if pygame.Rect(325 + (160 * count), 100, 150, 200).collidepoint(pygame.mouse.get_pos()) and DiamondChoice == False:#if the card on the table has been clicked
                         if x[2] == 'hearts': #If suit is hearts
                             hp += x[1] #heal hp = to rank
                             if hp > maxHp: #hp goes over max it sets hp to max
                                 hp = maxHp
                         elif x[2] == 'spades' or x[2] == 'clubs': #repeat same process for spades and clubs but they harm you
-                            hp -= x[1]
+                            if CurrentDiamond:
+                                if x[1] < Durability:
+                                    DiamondChoice = True
+                                    checking = x
+                                else:
+                                    hp -= x[1]
+                            else:
+                                hp -= x[1]
                             if hp < 0: #hp goes bellow 0 set it to 0
                                 hp = 0
-                        else:
-                            pass
-                        discardPile.append(x) #moves the card from table to discard
+                        elif x[2] == 'diamonds':#checking for diamonds
+                            if CurrentDiamond: #if it's not empty
+                                discardPile.append(CurrentDiamond) #discard the old diamond
+                            CurrentDiamond = x
+                            Durability = 999
+                            DurabilityList = []
+                        if x[2] != 'diamonds' and checking != x: #dosnt discard diamonds or the "card"
+                            discardPile.append(x) #moves the card from table to discard
                         tableCards.remove(x)
                         tableCount -= 1
                         Cooldown -= 1 #decrease escape cooldown
                     count += 1
-                if EscapeRect.collidepoint(pygame.mouse.get_pos()) and Cooldown <= 0: #If the escape buttons pressed and cooldown isnt 0
+                if DiamondChoice == True and pygame.Rect(50,500,200,100).collidepoint(pygame.mouse.get_pos()):
+                    damage = 0
+                    if checking[1] < CurrentDiamond[1]:
+                        damage = 0
+                    else:
+                        damage = checking[1] - CurrentDiamond[1]
+                        hp -= damage
+                    DurabilityList.append(checking)
+                    Durability = checking[1]
+                    DiamondChoice = False
+
+                if DiamondChoice == True and pygame.Rect(50, 650, 200, 100).collidepoint(pygame.mouse.get_pos()):
+                    hp -= checking[1]
+                    discardPile.append(checking)
+                    DiamondChoice = False
+
+
+                if EscapeRect.collidepoint(pygame.mouse.get_pos()) and Cooldown <= 0: #If the escape buttons pressed and cooldown isn't 0
                     EscapeList = tableCards #sets the escapelist to the table cards
                     tableCards = [] #removes all the table cards
                     random.shuffle(EscapeList) #shuffles the escape cards list
                     for x in EscapeList: #then adds those cards back at the bottom of the deck
                         Deck.append(x)
                     tableCount = 0
-                    Cooldown = 3 #set cooldwon back to 3
+                    Cooldown = 3 #set cooldown back to 3
 
                 if DeckRect.collidepoint(pygame.mouse.get_pos()): #if you click on the deck
                     menuOpen = 'DisplayDeck' #sends you to the deck preview area
@@ -166,6 +201,14 @@ while running: #The Main running loop where everything on the screen will update
         screen.blit(textSurface, ((10,50)))
         textSurface = font.render("Cards: %d" % (len(discardPile)), True, BLACK)  # And the discard
         screen.blit(textSurface, ((1000, 760)))
+        if CurrentDiamond: #if it's not empty, draw it
+            drawCard(500,500,CurrentDiamond[0],CurrentDiamond[2])
+
+        count = 0
+        for y in DurabilityList:  # check every card
+            drawCard(700, (500 + (count * 40)), y[0], y[2])
+            count += 1  # add 1 to the count for each suit so next time it is drawn in a different postion
+
 
         if tableCount < 2: #while there are less than 4 cards on the table,
             while tableCount != 4:
@@ -186,10 +229,17 @@ while running: #The Main running loop where everything on the screen will update
             textSurface = bigfont.render("You lose", True, WHITE)  # Draws the hp/max hp
             screen.blit(textSurface, ((150, 150)))
 
+        if DiamondChoice == True:
+            pygame.draw.rect(screen, DARKGREY, (0, 450, 300, 350))
+            textSurface = bigfont.render("Pick", True, WHITE)
+            drawButton(pygame.Rect(50,500,200,100),GREEN, "Weapon",15,15)
+            drawButton(pygame.Rect(50, 650, 200, 100), RED, "No Weapon", 15, 15)
+            drawCard(310,500,checking[0],checking[2])
 
     if menuOpen == 'Settings':
         screen.fill(GREY)
         drawButton(MenuButton, RED, "Menu", 50, 30)
+
 
     if menuOpen == 'DisplayDeck':
         screen.fill(GREY)
