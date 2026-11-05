@@ -54,6 +54,7 @@ for x in Suits: #Repeat for each 4 suits
             card = [(str(y) + " of " + x), y, x]
             Deck.append(card)
 
+
 random.shuffle(Deck)
 
 tableCards = []
@@ -122,11 +123,11 @@ while running: #The Main running loop where everything on the screen will update
                                 hp = maxHp
                         elif x[2] == 'spades' or x[2] == 'clubs': #repeat same process for spades and clubs but they harm you
                             if CurrentDiamond:
-                                if x[1] < Durability:
+                                if x[1] < Durability: #if the card has a lower rank than the last card use by the weapon
                                     DiamondChoice = True
-                                    checking = x
+                                    checking = x #checks choice from player
                                 else:
-                                    hp -= x[1]
+                                    hp -= x[1] #otherwise deducts hp like normal
                             else:
                                 hp -= x[1]
                             if hp < 0: #hp goes bellow 0 set it to 0
@@ -134,6 +135,9 @@ while running: #The Main running loop where everything on the screen will update
                         elif x[2] == 'diamonds':#checking for diamonds
                             if CurrentDiamond: #if it's not empty
                                 discardPile.append(CurrentDiamond) #discard the old diamond
+                                for y in DurabilityList:
+                                    discardPile.append(y)
+                                DurabilityList = []
                             CurrentDiamond = x
                             Durability = 999
                             DurabilityList = []
@@ -150,12 +154,16 @@ while running: #The Main running loop where everything on the screen will update
                     else:
                         damage = checking[1] - CurrentDiamond[1]
                         hp -= damage
+                        if hp < 0:  # hp goes bellow 0 set it to 0
+                            hp = 0
                     DurabilityList.append(checking)
                     Durability = checking[1]
                     DiamondChoice = False
 
                 if DiamondChoice == True and pygame.Rect(50, 650, 200, 100).collidepoint(pygame.mouse.get_pos()):
                     hp -= checking[1]
+                    if hp < 0:  # hp goes bellow 0 set it to 0
+                        hp = 0
                     discardPile.append(checking)
                     DiamondChoice = False
 
@@ -186,8 +194,9 @@ while running: #The Main running loop where everything on the screen will update
     if menuOpen == 'Play':
         screen.fill(GREY) #fills the screen and draws the decks
         drawButton(MenuButton, RED, "Menu", 50, 30)
-        pygame.draw.rect(screen, RED, DeckRect)
-        pygame.draw.rect(screen, BLACK, DeckRect, 3)
+        if Deck: #draws deck if there is at least one card
+            pygame.draw.rect(screen, RED, DeckRect)
+            pygame.draw.rect(screen, BLACK, DeckRect, 3)
         pygame.draw.rect(screen, RED, DiscardRect)
         pygame.draw.rect(screen, BLACK, DiscardRect, 3)
         if Cooldown <= 0: #Draws the button a different colour if it's not able to be used
@@ -202,16 +211,16 @@ while running: #The Main running loop where everything on the screen will update
         textSurface = font.render("Cards: %d" % (len(discardPile)), True, BLACK)  # And the discard
         screen.blit(textSurface, ((1000, 760)))
         if CurrentDiamond: #if it's not empty, draw it
-            drawCard(500,500,CurrentDiamond[0],CurrentDiamond[2])
+            drawCard(500,500,CurrentDiamond[0],CurrentDiamond[2]) #draw current diamond weapon
 
-        count = 0
+        count = 0 #draw list of enemies taken out by weapon
         for y in DurabilityList:  # check every card
             drawCard(700, (500 + (count * 40)), y[0], y[2])
             count += 1  # add 1 to the count for each suit so next time it is drawn in a different postion
 
 
         if tableCount < 2: #while there are less than 4 cards on the table,
-            while tableCount != 4:
+            while tableCount != 4 and Deck:
                 card = Deck[0] #adds cards from deck to table untill there are 4
                 tableCards.append(card)
                 Deck.remove(Deck[0])
